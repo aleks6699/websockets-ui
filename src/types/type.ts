@@ -1,7 +1,8 @@
+import { WebSocket } from "ws";
 export type usersType = {
   name: string;
   password: string;
-  index: number;
+  ws: WebSocket;
 }
 export type responseUserType = {
   type: string;

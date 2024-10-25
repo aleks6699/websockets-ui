@@ -5,29 +5,48 @@ import { WebSocket } from "ws";
 let index = 1;
 
 export function verifyAuth(data: requestUserType, ws: WebSocket) {
+  const { name, password } = data.data;
+
   const response: responseUserType = {
     type: "reg",
     data: {
-      name: data.name,
-      index: index++,
+      name,
+      index,
       error: false,
-      errorText: " ",
+      errorText: "",
     },
     id: 0,
   };
-  const user = users.find((user) => user.name === data.data.name);
-  if (user && user.password === data.data.password) {
-    return ws.send(
-      JSON.stringify({ ...response, data: JSON.stringify(response.data) })
-    )
-  } else if (!user) {
-    users.push({ name: data.data.name, password: data.data.password, index: index++ });
-    return ws.send(
-      JSON.stringify({ ...response, data: JSON.stringify(response.data) })
-    );
-  };
+  console.log(users)
 
-  return ws.send(
-    JSON.stringify({ ...response, data: JSON.stringify({ ...response.data, error: true, errorText: "Wrong name or password" }) })
-  );
+  const existingUser = users.get(name);
+
+  if (!existingUser) {
+    users.set(name, { name, password, ws });
+    index++; 
+
+    ws.send(JSON.stringify({ ...response, data: JSON.stringify(response.data) }));
+    console.log(`User registered: ${name}`);
+    return;
+  }
+
+  if (existingUser.password === password) {
+    ws.send(
+      JSON.stringify({ ...response, data: JSON.stringify(existingUser) })
+    );
+    console.log(`User ${name} authenticated successfully.`);
+  } else {   
+    const errorResponse: responseUserType = {
+      type: "reg",
+      data: {
+        name,
+        index: 0,
+        error: true,
+        errorText: "Incorrect password",
+      },
+      id: 0,
+    };
+    ws.send(JSON.stringify({ ...errorResponse, data: JSON.stringify(errorResponse.data) }));
+    console.error(`Authentication failed for ${name}: incorrect password.`);
+  }
 }
