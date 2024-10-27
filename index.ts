@@ -1,8 +1,15 @@
 import { httpServer } from "./src/http_server/index";
 import { WebSocketServer, WebSocket } from "ws";
-import { requestUserType, usersType, RoomUpdate } from "./src/types/type";
-import { verifyAuth } from "./src/verify/verify";
+import { usersType, RoomUpdate } from "./src/types/type";
+import { verifyAuth } from "./src/module/verify/verify";
 import { randomIndex } from "./src/utils/randomIndex";
+import { startGame } from "./src/module/start_game/start_game";
+import { updateRoom } from "./src/module/update_room/update_room";
+import { updateWinners } from "./src/module/update_winners/update_winners";
+import { createGame } from "./src/module/create_game/create_game";
+import { getUserNameByWebSocket } from "./src/utils/getUserNameByWebSocket";
+import { handleDisconnect } from "./src/utils/handleDisconnect";
+import { turn } from "./src/module/turn/turn";
 
 const winners = {
   type: "update_winners",
@@ -17,6 +24,7 @@ let room: RoomUpdate = {
 };
 
 export const users: Map<any, usersType> = new Map();
+export const games: Map<any, any> = new Map();
 
 const HTTP_PORT = 8181;
 console.log(`Start static http server on the ${HTTP_PORT} port!`);
@@ -30,19 +38,20 @@ wsServer.on("connection", function connection(ws) {
       const messageString = typeof message === "string" ? message : message.toString();
       const data: any = JSON.parse(messageString);
       const name = getUserNameByWebSocket(ws) as string;
+      console.log(data);
 
       switch (data.type) {
         case "reg": {
           data.data = JSON.parse(data.data.toString());
           verifyAuth(data, ws);
-          updateRoom(room, ws);
-          updateWinners(winners, ws);
+          updateRoom(room, users);
+          updateWinners(winners, users);
           break;
         }
 
         case "create_room": {
           room.data.push({ roomId: randomIndex(), roomUsers: [{ name: name, index: 1 }] });
-          updateRoom(room, ws);
+          updateRoom(room, users);
           break;
         }
 
@@ -53,13 +62,9 @@ wsServer.on("connection", function connection(ws) {
 
           room.data = room.data.map((room) => {
             if (room.roomId === indexRoom) {
-              console.log("Проверяем комнату:", room);
-
               const userExists = room.roomUsers.some((user) => user.name === name);
-              console.log("Пользователь уже существует?", userExists);
 
               if (!userExists) {
-                console.log("Добавляем пользователя:", name);
 
                 const updatedUsers = [...room.roomUsers, { name: name, index: room.roomUsers.length + 1 }];
 
@@ -69,24 +74,28 @@ wsServer.on("connection", function connection(ws) {
             return room;
           });
 
-
-
-          updateRoom(room, ws);
+          updateRoom(room, users);
 
           if (room.data.some(r => r.roomId === indexRoom && r.roomUsers.length === 2)) {
             room.data = room.data.map((room) => {
               if (room.roomId === indexRoom) {
                 const [user1, user2] = room.roomUsers;
-                createGame(users.get(user1.name)?.ws as WebSocket)
-                createGame(users.get(user2.name)?.ws as WebSocket)
-
-
+                createGame(users.get(user1.name)?.ws as WebSocket, users.get(user2.name)?.ws as WebSocket);
               }
               return room;
             })
-
           }
           room.data = room.data.filter((room) => room.roomUsers.length < 2);
+
+          break;
+        }
+        case "add_ships": {
+          startGame(data);
+          break;
+        }
+        case "attack": {
+          attack(data, games);
+          turn(data, games);
 
           break;
         }
@@ -115,43 +124,24 @@ wsServer.on("connection", function connection(ws) {
   });
 });
 
-function updateWinners(winners: any, ws: WebSocket) {
-  ws.send(JSON.stringify({ ...winners, data: JSON.stringify(winners.data) }));
-}
+function attack(data: any, games: Map<any, any>) {
+  const { x, y, gameId, indexPlayer } = JSON.parse(data.data.toString());
+  console.log(x, y, gameId, indexPlayer)
 
-function updateRoom(room: RoomUpdate, ws: WebSocket) {
-  ws.send(JSON.stringify({ ...room, data: JSON.stringify(room.data) }));
-}
-
-export function handleDisconnect(ws: WebSocket) {
-  for (const [name, user] of users.entries()) {
-    if (user.ws === ws) {
-      users.delete(name);
-      console.log(`User ${name} disconnected and removed.`);
-      break;
-    }
-  }
-}
-
-export function getUserNameByWebSocket(ws: WebSocket): string | undefined {
-  for (const [name, user] of users.entries()) {
-    if (user.ws === ws) {
-      return name;
-    }
-  }
-
-  return undefined;
-}
-
-function createGame(ws: WebSocket) {
-  const createGame = {
-    type: "create_game",
+  const atack = {
+    type: "attack",
     data: {
-      idGame: randomIndex(),
-      idPlayer: randomIndex(),
+      position: { x, y },
+      currentPlayer: indexPlayer,
+      status: "miss"
     },
     id: 0,
-  };
+  }
 
-  ws.send(JSON.stringify({ ...createGame, data: JSON.stringify(createGame.data) }));
+  const game = games.get(gameId);
+  game.player1Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
+  game.player2Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
 }
+
+
+

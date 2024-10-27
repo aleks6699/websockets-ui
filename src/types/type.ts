@@ -28,13 +28,13 @@ export type requestUserType = {
 }
 
 
-interface RoomUser {
+export interface RoomUser {
   name: string;
   index: number;
 }
 
 // Тип для комнаты
-interface Room {
+ export interface Room {
   roomId: string;
   roomUsers: RoomUser[];
 }

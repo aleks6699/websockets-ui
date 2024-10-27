@@ -1,5 +1,5 @@
-import { requestUserType, responseUserType } from "../types/type";
-import { users } from "../..";
+import { requestUserType, responseUserType } from "../../types/type";
+import { users } from "../../..";
 import { WebSocket } from "ws";
 
 let index = 1;
