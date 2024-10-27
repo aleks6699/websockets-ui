@@ -1,5 +1,6 @@
 
- export function turn(data: any, games: Map<any, any>) {
+import { GamesType, Turn } from "../../types/type";
+export function turn(data: Turn, games: GamesType) {
   try {
     const { gameId, indexPlayer } = JSON.parse(data.data.toString());
 
@@ -27,7 +28,7 @@
       id: 0,
     };
 
-    const message = JSON.stringify({ ...turnMessage, data: JSON.stringify({ ...turnMessage.data, currentPlayer: nextPlayer }) }) 
+    const message = JSON.stringify({ ...turnMessage, data: JSON.stringify({ ...turnMessage.data, currentPlayer: nextPlayer }) })
 
     player1Ws.send(message);
     player2Ws.send(message);

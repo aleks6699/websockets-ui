@@ -33,15 +33,23 @@ export interface RoomUser {
   index: number;
 }
 
-// Тип для комнаты
  export interface Room {
   roomId: string;
   roomUsers: RoomUser[];
 }
 
-// Тип основного объекта с типом сообщения
 export interface RoomUpdate {
   type: "update_room";
   data: Room[];
   id: 0;
 }
+ export type GamesType = Map<string, { player1Id: [string, WebSocket, boolean]; player2Id: [string, WebSocket, boolean] }>;
+
+ export type Turn = {
+  type: "turn";
+  data: {
+    currentPlayer: string;
+  };
+  id: 0;
+}
+

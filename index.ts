@@ -1,6 +1,6 @@
 import { httpServer } from "./src/http_server/index";
 import { WebSocketServer, WebSocket } from "ws";
-import { usersType, RoomUpdate } from "./src/types/type";
+import { usersType, RoomUpdate, GamesType } from "./src/types/type";
 import { verifyAuth } from "./src/module/verify/verify";
 import { randomIndex } from "./src/utils/randomIndex";
 import { startGame } from "./src/module/start_game/start_game";
@@ -23,8 +23,8 @@ let room: RoomUpdate = {
   id: 0,
 };
 
-export const users: Map<any, usersType> = new Map();
-export const games: Map<any, any> = new Map();
+export const users: Map<string, usersType> = new Map();
+export const games: GamesType = new Map();
 
 const HTTP_PORT = 8181;
 console.log(`Start static http server on the ${HTTP_PORT} port!`);
@@ -124,7 +124,7 @@ wsServer.on("connection", function connection(ws) {
   });
 });
 
-function attack(data: any, games: Map<any, any>) {
+function attack(data: any, games: GamesType) {
   const { x, y, gameId, indexPlayer } = JSON.parse(data.data.toString());
   console.log(x, y, gameId, indexPlayer)
 
@@ -139,9 +139,8 @@ function attack(data: any, games: Map<any, any>) {
   }
 
   const game = games.get(gameId);
-  game.player1Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
-  game.player2Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
+  game?.player1Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
+  game?.player2Id[1].send(JSON.stringify({ ...atack, data: JSON.stringify({ ...atack.data, position: JSON.stringify({ ...atack.data.position }) }) }));
 }
-
 
 
